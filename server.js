@@ -8,9 +8,18 @@ var apiRoutes         = require('./routes/api.js');
 var fccTestingRoutes  = require('./routes/fcctesting.js');
 var runner            = require('./test-runner');
 
+var helmet            = require('helmet');
+var MongoClient       = require('mongodb').MongoClient;
+
+const MONGODB_CONNECTION_STRING = process.env.DB;
+
 var app = express();
 
 app.use('/public', express.static(process.cwd() + '/public'));
+
+app.use(helmet());
+app.use(helmet.noCache());
+app.use(helmet.hidePoweredBy({ setTo: 'PHP 4.2.0' }));
 
 app.use(cors({origin: '*'})); //USED FOR FCC TESTING PURPOSES ONLY!
 
@@ -27,7 +36,17 @@ app.route('/')
 fccTestingRoutes(app);
 
 //Routing for API 
-apiRoutes(app);  
+MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {
+  if(err){
+    console.log(err, "database error");
+  } else {
+    console.log(db.databaseName,'database connected')
+    //Routing for API 
+    apiRoutes(app, db); 
+  }
+});
+
+//apiRoutes(app);  
     
 //404 Not Found Middleware
 app.use(function(req, res, next) {
